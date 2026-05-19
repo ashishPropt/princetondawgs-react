@@ -20,7 +20,7 @@ jobs:
       - name: Build React client
         run: |
           cd client
-          npm ci
+          npm install
           VITE_API_URL=/api npm run build
 
       - name: Copy build to server via SCP
@@ -43,7 +43,7 @@ jobs:
             set -e
             cd /home/${{ secrets.VULTR_USER }}/princetondawgs
             git pull origin main
-            cd server && npm ci --omit=dev
+            cd server && npm install --omit=dev
             pm2 restart princetondawgs || pm2 start index.js --name princetondawgs
             pm2 save
             echo "Deploy complete at $(date)"
