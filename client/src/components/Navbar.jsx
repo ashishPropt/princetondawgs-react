@@ -16,16 +16,17 @@ export default function Navbar() {
           <span>🐾</span>
           <span>Princeton<strong>Dawgs</strong></span>
         </Link>
+
         <ul className={`pd-nav-links${open ? ' pd-open' : ''}`}>
-          <li><NavLink to="/" end>Home</NavLink></li>
-          <li><NavLink to="/team">The Pack</NavLink></li>
-          <li><NavLink to="/leagues">USTA Leagues</NavLink></li>
-          <li><NavLink to="/tournament">Tournament</NavLink></li>
-          <li><NavLink to="/sponsors">Sponsors</NavLink></li>
+          <li><NavLink to="/" end onClick={() => setOpen(false)}>Home</NavLink></li>
+          <li><NavLink to="/team" onClick={() => setOpen(false)}>The Pack</NavLink></li>
+          <li><NavLink to="/leagues" onClick={() => setOpen(false)}>USTA Leagues</NavLink></li>
+          <li><NavLink to="/tournament" onClick={() => setOpen(false)}>Tournament</NavLink></li>
+          <li><NavLink to="/sponsors" onClick={() => setOpen(false)}>Sponsors</NavLink></li>
           {user ? (
             <>
-              <li><NavLink to="/dashboard">Dashboard</NavLink></li>
-              {user.is_admin && <li><NavLink to="/admin">Admin</NavLink></li>}
+              <li><NavLink to="/dashboard" onClick={() => setOpen(false)}>Dashboard</NavLink></li>
+              {user.is_admin && <li><NavLink to="/admin" onClick={() => setOpen(false)}>Admin</NavLink></li>}
               <li>
                 <button onClick={handleLogout} style={{ background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.8)', padding:'0.4rem 0.75rem', fontSize:'0.9rem' }}>
                   Logout ({user.name.split(' ')[0]})
@@ -33,16 +34,19 @@ export default function Navbar() {
               </li>
             </>
           ) : (
-            <li><NavLink to="/register" className="pd-nav-cta">Join the Pack</NavLink></li>
+            <>
+              <li><NavLink to="/login" onClick={() => setOpen(false)}>Login</NavLink></li>
+              <li><NavLink to="/register" className="pd-nav-cta" onClick={() => setOpen(false)}>Join the Pack</NavLink></li>
+            </>
           )}
         </ul>
+
         <button
-          style={{ background:'none', border:'none', color:'#fff', fontSize:'1.4rem', cursor:'pointer' }}
+          className="pd-hamburger"
           onClick={() => setOpen(!open)}
           aria-label="Menu"
-          className="pd-hamburger"
         >
-          ☰
+          {open ? '✕' : '☰'}
         </button>
       </div>
     </nav>
