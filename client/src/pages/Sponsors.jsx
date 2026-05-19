@@ -2,15 +2,107 @@ import { useState } from 'react'
 import api from '../api/axios'
 import toast from 'react-hot-toast'
 
+// Current sponsors (matching original site — Gold tier = Top Dawg in new naming)
+const CURRENT_SPONSORS = [
+  {
+    id: 1,
+    name: 'Alpha1 Partners',
+    website: 'https://alpha1partners.com/',
+    tier: 'Top Dawg',
+    bg: '#ffffff',
+    logo: null, // no hosted image yet — show name
+  },
+  {
+    id: 2,
+    name: 'Cedar Grove Catering',
+    website: 'https://cedargrovecatering.com/',
+    tier: 'Top Dawg',
+    bg: '#ffffff',
+    logo: null,
+  },
+  {
+    id: 3,
+    name: 'ProptXchange',
+    website: 'https://proptxchange.com/',
+    tier: 'Top Dawg',
+    bg: '#0a0a0a',
+    logo: null,
+  },
+]
+
 const TIERS = [
-  { name: 'Paw Print', price: '$250', perks: ['Name on website', 'Social shoutout', 'Thank-you at events'] },
-  { name: 'Dawg Pack', price: '$500', perks: ['Logo on website', 'Banner at events', '2 free event tickets', 'Social campaign'] },
-  { name: 'Top Dawg', price: '$1,000', perks: ['Premium logo placement', 'Named tournament sponsor', '5 free event tickets', 'Year-round social features', 'Email to all members'] }
+  {
+    name: 'Top Dawg',
+    emoji: '🏆',
+    price: '$1,000',
+    color: '#854d0e',
+    bg: '#fef9c3',
+    border: '#fde68a',
+    featured: true,
+    perks: [
+      'Logo on event t-shirts (back, large)',
+      'Prominent logo on website sponsors page + homepage',
+      'Courtside banner at the Dawg Days tournament',
+      'Featured in member newsletters (6 issues)',
+      'Social media shoutout (2× per season)',
+      '1 complimentary tournament entry',
+      'Logo on club email footers',
+    ],
+  },
+  {
+    name: 'Dawg Pack',
+    emoji: '🐾',
+    price: '$500',
+    color: '#475569',
+    bg: '#f1f5f9',
+    border: '#cbd5e1',
+    featured: false,
+    perks: [
+      'Logo on event t-shirts (back, medium)',
+      'Logo on website sponsors page',
+      'Mentioned in 3 member newsletters',
+      'Social media shoutout (1× per season)',
+      'Courtside signage at home matches',
+    ],
+  },
+  {
+    name: 'Paw Print',
+    emoji: '🐾',
+    price: '$250',
+    color: '#166534',
+    bg: '#f0fdf4',
+    border: '#bbf7d0',
+    featured: false,
+    perks: [
+      'Name + link on website sponsors page',
+      'Mentioned in 1 member newsletter',
+      'Social media thank-you post',
+      'Satisfaction of supporting local tennis 🎾',
+    ],
+  },
+]
+
+const PERKS = [
+  { icon: '👕', title: 'Event T-Shirts', desc: 'Your logo printed on shirts worn by every player at every tournament and league match day — living billboards around Princeton courts and beyond.' },
+  { icon: '🌐', title: 'Website Presence', desc: 'Logo and link featured on princetondawgs.com — seen by players, parents, opponents, and prospective members year-round.' },
+  { icon: '🏟️', title: 'Courtside Signage', desc: 'Branded banner displayed at the Dawg Days of Summer tournament and league home matches — visible to players, spectators, and opponents.' },
+  { icon: '📣', title: 'Social Shoutouts', desc: 'Featured in club social media posts for major events, match results, and tournament announcements throughout the season.' },
+  { icon: '📧', title: 'Newsletter Feature', desc: 'Logo and a short blurb in our member email newsletter — direct reach into players\' inboxes each month.' },
+  { icon: '🤝', title: 'Community Goodwill', desc: 'Align your brand with a positive, inclusive community sport. Support local tennis and show Princeton you invest in the people who live here.' },
+]
+
+const FAQS = [
+  { q: 'Can I sponsor a single event instead of the whole season?', a: 'Absolutely. Reach out via the form below and we can put together a custom per-event package. Single-event logo placement on shirts and banners is available starting at $100.' },
+  { q: 'What file format do you need for my logo?', a: 'We prefer a vector file (SVG, AI, or EPS) or a high-resolution PNG (at least 300 dpi) for print quality on t-shirts and banners. We\'ll reach out after you sign up to collect the file.' },
+  { q: 'When is the deadline to get my logo on the t-shirts?', a: 'We typically finalize the shirt design 3–4 weeks before each event. If you sign up after that deadline, your logo will appear on the next print run.' },
+  { q: 'How do I pay?', a: 'After we confirm your package, we\'ll send an invoice you can pay via check, Zelle, or Venmo. We\'ll issue a receipt for your records.' },
+  { q: 'Is my sponsorship tax-deductible?', a: 'Princeton Dawgs is a community club and sponsorships are typically treated as advertising expenses by most businesses — consult your accountant. We are not a registered 501(c)(3) nonprofit.' },
 ]
 
 export default function Sponsors() {
   const [form, setForm] = useState({ name: '', company: '', email: '', phone: '', tier: '', message: '' })
   const [loading, setLoading] = useState(false)
+  const [openFaq, setOpenFaq] = useState(null)
 
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }))
 
@@ -19,67 +111,145 @@ export default function Sponsors() {
     setLoading(true)
     try {
       await api.post('/public/sponsor-inquiry', form)
-      toast.success("Thanks! We'll be in touch soon.")
+      toast.success("Thanks! A captain will be in touch within 48 hours.")
       setForm({ name: '', company: '', email: '', phone: '', tier: '', message: '' })
     } catch {
-      toast.error('Something went wrong. Please email us directly.')
+      toast.error('Something went wrong. Please email captains@princetondawgs.com directly.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div style={{ paddingTop: 80, minHeight: '100vh' }}>
-      <div style={{ background: 'var(--pd-dark)', padding: '3rem 1.5rem', textAlign: 'center' }}>
-        <div className="pd-container">
-          <span className="pd-tag pd-tag-light">Partner With Us</span>
-          <h1 className="pd-section-title pd-white">Sponsor the Dawgs</h1>
-          <p style={{ color: 'rgba(255,255,255,0.7)', maxWidth: 520, margin: '0 auto' }}>Support Princeton's most active recreational tennis community and get your brand in front of a passionate, local audience.</p>
+    <div style={{ paddingTop: 64, minHeight: '100vh', background: '#f8f9fa' }}>
+
+      {/* HERO */}
+      <div style={{ background: 'linear-gradient(135deg, #1A1A2E 0%, #2a4a7a 60%, #1a3a6a 100%)', color: '#fff', padding: '4rem 1.5rem 3.5rem', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', right: '-2rem', top: '-1rem', fontSize: '12rem', opacity: 0.06, pointerEvents: 'none' }}>🎾</div>
+        <div className="pd-container" style={{ position: 'relative' }}>
+          <div style={{ display: 'inline-block', background: 'var(--pd-orange)', color: '#fff', fontSize: '0.78rem', fontWeight: 700, padding: '0.28rem 0.8rem', borderRadius: 20, marginBottom: '1.2rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>2025 — 2026 Season</div>
+          <h1 style={{ fontSize: 'clamp(2rem,5vw,2.8rem)', fontWeight: 800, marginBottom: '0.6rem', lineHeight: 1.15 }}>Partner With Princeton Dawgs</h1>
+          <p style={{ fontSize: '1.1rem', opacity: 0.88, maxWidth: 640, margin: '0 auto 1.8rem' }}>Connect your brand with an active, community-minded group of tennis players, their families, and supporters right here in Princeton, NJ.</p>
+          <a href="#packages" className="pd-btn pd-btn-primary" style={{ marginRight: '0.75rem' }}>View Packages</a>
+          <a href="#contact" className="pd-btn pd-btn-ghost">Get In Touch</a>
         </div>
       </div>
 
-      <div className="pd-container" style={{ paddingTop: '3rem', paddingBottom: '3rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px,1fr))', gap: '1.5rem', marginBottom: '4rem' }}>
-          {TIERS.map((t, i) => (
-            <div key={t.name} style={{ background: i === 2 ? 'var(--pd-dark)' : '#fff', color: i === 2 ? '#fff' : 'inherit', border: i === 1 ? '2px solid var(--pd-orange)' : '1px solid #e8e8e8', borderRadius: 16, padding: '2rem', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
-              {i === 1 && <div style={{ background: 'var(--pd-orange)', color: '#fff', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0.25rem 0.75rem', borderRadius: 100, display: 'inline-block', marginBottom: '0.75rem' }}>Most Popular</div>}
-              <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: i === 2 ? 'var(--pd-orange)' : '#888', marginBottom: '0.5rem' }}>Tier</div>
-              <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.4rem' }}>{t.name}</h3>
-              <div style={{ fontSize: '2rem', fontWeight: 700, color: i === 2 ? 'var(--pd-orange)' : 'var(--pd-dark)', marginBottom: '1.5rem' }}>{t.price}<span style={{ fontSize: '0.85rem', fontWeight: 400, color: '#888' }}>/season</span></div>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.5rem' }}>
-                {t.perks.map(p => <li key={p} style={{ padding: '0.4rem 0', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderBottom: `1px solid ${i === 2 ? 'rgba(255,255,255,0.1)' : '#f0f0f0'}` }}><span style={{ color: 'var(--pd-green)' }}>✓</span>{p}</li>)}
-              </ul>
-              <button onClick={() => setForm(f => ({ ...f, tier: t.name }))} className="pd-btn pd-btn-primary" style={{ width: '100%' }}>Get Started</button>
+      {/* REACH STATS */}
+      <div className="pd-container" style={{ padding: '2rem 1.5rem 0' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', background: '#fff', border: '1px solid #e8e8e8', borderRadius: 16, padding: '1.75rem 2rem', marginBottom: '3rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+          {[['60+','Active Players'],['3','USTA Leagues / yr'],['2','Tournaments / yr'],['300+','T-shirts Printed'],['Princeton','NJ Community']].map(([num, lbl]) => (
+            <div key={lbl} style={{ textAlign: 'center', minWidth: 130 }}>
+              <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--pd-orange)', display: 'block' }}>{num}</span>
+              <span style={{ fontSize: '0.8rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{lbl}</span>
             </div>
           ))}
         </div>
 
-        <div style={{ maxWidth: 620, margin: '0 auto', background: '#fff', borderRadius: 20, padding: '2.5rem', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
-          <h2 style={{ margin: '0 0 0.5rem' }}>Sponsor Inquiry</h2>
-          <p style={{ color: '#888', marginBottom: '2rem', fontSize: '0.9rem' }}>Fill out the form and we'll follow up within 48 hours.</p>
-          <form onSubmit={handleSubmit}>
-            <div className="pd-form-row">
-              <div className="pd-form-group"><label>Your Name *</label><input required value={form.name} onChange={set('name')} placeholder="Jane Smith" /></div>
-              <div className="pd-form-group"><label>Company *</label><input required value={form.company} onChange={set('company')} placeholder="Acme LLC" /></div>
-            </div>
-            <div className="pd-form-row">
-              <div className="pd-form-group"><label>Email *</label><input type="email" required value={form.email} onChange={set('email')} placeholder="jane@acme.com" /></div>
-              <div className="pd-form-group"><label>Phone</label><input value={form.phone} onChange={set('phone')} placeholder="609-555-0100" /></div>
-            </div>
-            <div className="pd-form-group">
-              <label>Interested Tier</label>
-              <select value={form.tier} onChange={set('tier')}>
-                <option value="">Select a tier…</option>
-                {TIERS.map(t => <option key={t.name} value={t.name}>{t.name} ({t.price})</option>)}
-              </select>
-            </div>
-            <div className="pd-form-group">
-              <label>Message</label>
-              <textarea rows={4} value={form.message} onChange={set('message')} placeholder="Tell us about your business and goals…" style={{ width:'100%', padding:'0.65rem 0.85rem', border:'1.5px solid #e0e0e0', borderRadius:8, fontFamily:'inherit', fontSize:'0.95rem', outline:'none', resize:'vertical' }} />
-            </div>
-            <button type="submit" className="pd-form-submit" disabled={loading}>{loading ? 'Sending…' : 'Submit Inquiry'}</button>
-          </form>
+        {/* CURRENT SPONSORS */}
+        <h2 style={{ fontSize: '1.6rem', marginBottom: '0.5rem' }}>Our Current Sponsors</h2>
+        <p style={{ color: '#666', marginBottom: '1.5rem' }}>Thank you to our Top Dawg sponsors for supporting the 2025–2026 season.</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '3rem' }}>
+          {CURRENT_SPONSORS.map(s => (
+            <a key={s.id} href={s.website} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+              <div style={{ background: s.bg, border: '2px solid var(--pd-orange)', borderRadius: 16, padding: '2rem 1.5rem', textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', transition: 'transform 0.2s', cursor: 'pointer' }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'}
+                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#854d0e', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 100, padding: '0.25rem 0.75rem', display: 'inline-block', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.07em' }}>🏆 Top Dawg</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: s.bg === '#0a0a0a' ? '#fff' : 'var(--pd-dark)', marginBottom: '0.5rem' }}>{s.name}</div>
+                <div style={{ fontSize: '0.8rem', color: s.bg === '#0a0a0a' ? 'rgba(255,255,255,0.6)' : '#888' }}>Gold Sponsor</div>
+              </div>
+            </a>
+          ))}
         </div>
+
+        {/* WHAT SPONSORS GET */}
+        <section style={{ marginBottom: '3rem' }}>
+          <h2 style={{ fontSize: '1.6rem', marginBottom: '1.25rem' }} id="packages">What Your Sponsorship Does</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '1.25rem' }}>
+            {PERKS.map(p => (
+              <div key={p.title} style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 14, padding: '1.4rem 1.25rem', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                <span style={{ fontSize: '2rem', marginBottom: '0.6rem', display: 'block' }}>{p.icon}</span>
+                <h4 style={{ fontSize: '0.97rem', color: 'var(--pd-dark)', marginBottom: '0.4rem', margin: '0 0 0.4rem' }}>{p.title}</h4>
+                <p style={{ fontSize: '0.84rem', color: '#666', lineHeight: 1.5, margin: 0 }}>{p.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* TIER CARDS */}
+        <h2 style={{ fontSize: '1.6rem', marginBottom: '1.25rem' }}>Sponsorship Packages</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+          {TIERS.map((t, i) => (
+            <div key={t.name} style={{ background: '#fff', border: `2px solid ${t.featured ? 'var(--pd-orange)' : '#e8e8e8'}`, borderRadius: 16, padding: '2rem 1.5rem', boxShadow: t.featured ? '0 0 0 3px rgba(245,90,0,0.15), 0 4px 16px rgba(0,0,0,0.08)' : '0 4px 16px rgba(0,0,0,0.06)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+              {t.featured && <div style={{ position: 'absolute', top: 14, right: -28, background: 'var(--pd-orange)', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '0.22rem 2.2rem', transform: 'rotate(35deg)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Most Impact</div>}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: t.bg, color: t.color, border: `1px solid ${t.border}`, borderRadius: 100, padding: '0.3rem 0.8rem', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '1rem', alignSelf: 'flex-start' }}>{t.name}</div>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--pd-dark)', marginBottom: '0.2rem', lineHeight: 1 }}>{t.price} <span style={{ fontSize: '0.95rem', fontWeight: 400, color: '#888' }}>/ season</span></div>
+              <ul style={{ listStyle: 'none', margin: '1rem 0 1.5rem', padding: 0, flex: 1 }}>
+                {t.perks.map(p => (
+                  <li key={p} style={{ fontSize: '0.88rem', padding: '0.38rem 0', borderBottom: '1px solid #f0f0f0', display: 'flex', gap: '0.55rem', alignItems: 'flex-start' }}>
+                    <span style={{ color: 'var(--pd-orange)', fontWeight: 800, flexShrink: 0 }}>✓</span>{p}
+                  </li>
+                ))}
+              </ul>
+              <a href="#contact" className="pd-btn pd-btn-primary" style={{ textAlign: 'center', display: 'block', width: '100%' }} onClick={() => setForm(f => ({ ...f, tier: t.name }))}>
+                Become a {t.name} Sponsor
+              </a>
+            </div>
+          ))}
+        </div>
+
+        {/* INQUIRY FORM */}
+        <section id="contact" style={{ marginBottom: '3rem' }}>
+          <h2 style={{ fontSize: '1.6rem', marginBottom: '0.25rem' }}>Get In Touch</h2>
+          <p style={{ color: '#666', marginBottom: '2rem' }}>Fill out the form and a Princeton Dawgs captain will follow up within 48 hours.</p>
+          <div style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 20, padding: '2.5rem', maxWidth: 680, boxShadow: '0 4px 16px rgba(0,0,0,0.06)' }}>
+            <form onSubmit={handleSubmit}>
+              <div className="pd-form-row">
+                <div className="pd-form-group"><label>Your Name *</label><input required value={form.name} onChange={set('name')} placeholder="Jane Smith" /></div>
+                <div className="pd-form-group"><label>Business / Organization</label><input value={form.company} onChange={set('company')} placeholder="Acme LLC" /></div>
+              </div>
+              <div className="pd-form-row">
+                <div className="pd-form-group"><label>Email *</label><input type="email" required value={form.email} onChange={set('email')} placeholder="jane@acme.com" /></div>
+                <div className="pd-form-group"><label>Phone</label><input value={form.phone} onChange={set('phone')} placeholder="609-555-0100" /></div>
+              </div>
+              <div className="pd-form-group">
+                <label>Package Interest</label>
+                <select value={form.tier} onChange={set('tier')}>
+                  <option value="">— Select a package —</option>
+                  <option value="Top Dawg">🏆 Top Dawg — $1,000</option>
+                  <option value="Dawg Pack">🐾 Dawg Pack — $500</option>
+                  <option value="Paw Print">🐾 Paw Print — $250</option>
+                  <option value="Custom">💬 Let's discuss something custom</option>
+                </select>
+              </div>
+              <div className="pd-form-group">
+                <label>Message / Questions</label>
+                <textarea rows={4} value={form.message} onChange={set('message')} placeholder="Tell us about your business, any questions, or ideas for a custom arrangement..." style={{ width: '100%', padding: '0.65rem 0.85rem', border: '1.5px solid #e0e0e0', borderRadius: 8, fontFamily: 'inherit', fontSize: '0.95rem', outline: 'none', resize: 'vertical' }} />
+              </div>
+              <button type="submit" className="pd-form-submit" disabled={loading}>{loading ? 'Sending…' : 'Send Inquiry →'}</button>
+            </form>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section style={{ marginBottom: '4rem' }}>
+          <h2 style={{ fontSize: '1.6rem', marginBottom: '1.25rem' }}>Frequently Asked Questions</h2>
+          <div style={{ maxWidth: 720 }}>
+            {FAQS.map((faq, i) => (
+              <div key={i} style={{ background: '#fff', border: '1px solid #e8e8e8', borderRadius: 12, marginBottom: '0.7rem', overflow: 'hidden' }}>
+                <button onClick={() => setOpenFaq(openFaq === i ? null : i)} style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '1rem 1.25rem', fontSize: '0.95rem', fontWeight: 600, color: 'var(--pd-dark)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'inherit' }}>
+                  {faq.q}
+                  <span style={{ transition: 'transform 0.2s', transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0)', fontSize: '0.75rem', flexShrink: 0, marginLeft: '1rem' }}>▼</span>
+                </button>
+                {openFaq === i && (
+                  <div style={{ padding: '0 1.25rem 1rem', fontSize: '0.88rem', color: '#666', lineHeight: 1.6 }}>{faq.a}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   )
