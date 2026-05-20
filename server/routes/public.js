@@ -15,7 +15,7 @@ router.get('/stats', async (req, res) => {
     })
   } catch (err) {
     console.error(err)
-    res.json({ playerCount: 30, ntrpRows: [], recentRegs: [] })
+    res.json({ playerCount: 0, ntrpRows: [], recentRegs: [] })
   }
 })
 
@@ -25,6 +25,22 @@ router.get('/players', async (req, res) => {
     res.json(rows)
   } catch (err) {
     res.status(500).json({ error: 'Failed' })
+  }
+})
+
+// Live sponsors for the Sponsors page
+router.get('/sponsors', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT id, name, website_url, logo_url, bg_color, tier, scope, event_id, display_order
+      FROM sponsors
+      WHERE active = true
+      ORDER BY display_order ASC, tier DESC, created_at ASC
+    `)
+    res.json(rows)
+  } catch (err) {
+    console.error(err)
+    res.json([])
   }
 })
 
