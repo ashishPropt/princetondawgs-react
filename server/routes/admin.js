@@ -36,8 +36,52 @@ router.get('/interest', async (req, res) => {
 })
 
 router.get('/sponsors', async (req, res) => {
-  const { rows } = await pool.query('SELECT * FROM sponsor_inquiries ORDER BY created_at DESC')
+  const { rows } = await pool.query(`
+    SELECT s.*, e.name as event_name
+    FROM sponsors s
+    LEFT JOIN events e ON e.id = s.event_id
+    ORDER BY s.display_order ASC, s.created_at DESC
+  `)
   res.json(rows)
+})
+
+router.post('/sponsors', async (req, res) => {
+  const { name, website_url, logo_url, bg_color, tier, scope, event_id, display_order } = req.body
+  if (!name) return res.status(400).json({ error: 'name required' })
+  try {
+    const { rows } = await pool.query(
+      'INSERT INTO sponsors (name, website_url, logo_url, bg_color, tier, scope, event_id, display_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *',
+      [name, website_url || null, logo_url || null, bg_color || '#ffffff', tier || 'Paw Print', scope || 'site', event_id || null, display_order || 0]
+    )
+    res.status(201).json(rows[0])
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Failed to create sponsor' })
+  }
+})
+
+router.patch('/sponsors/:id', async (req, res) => {
+  const { name, website_url, logo_url, bg_color, tier, scope, event_id, display_order, active } = req.body
+  try {
+    const { rows } = await pool.query(
+      `UPDATE sponsors SET
+        name=$1, website_url=$2, logo_url=$3, bg_color=$4,
+        tier=$5, scope=$6, event_id=$7, display_order=$8, active=$9
+       WHERE id=$10 RETURNING *`,
+      [name, website_url || null, logo_url || null, bg_color || '#ffffff',
+       tier, scope, event_id || null, display_order ?? 0, active ?? true, req.params.id]
+    )
+    if (!rows[0]) return res.status(404).json({ error: 'Not found' })
+    res.json(rows[0])
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Failed to update sponsor' })
+  }
+})
+
+router.delete('/sponsors/:id', async (req, res) => {
+  await pool.query('DELETE FROM sponsors WHERE id=$1', [req.params.id])
+  res.json({ message: 'Deleted' })
 })
 
 router.get('/events/:id/registrations', async (req, res) => {
