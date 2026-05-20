@@ -1,14 +1,62 @@
 const router = require('express').Router()
 const pool = require('../db/pool')
 const { adminAuth } = require('../middleware/auth')
+const multer = require('multer')
+const path = require('path')
+const fs = require('fs')
 
 router.use(adminAuth)
 
+// ── File upload setup ─────────────────────────────────────────────────────────
+const uploadDir = path.join(__dirname, '../../client/dist/uploads/sponsors')
+// ensure upload dir exists (created at runtime)
+const ensureUploadDir = () => {
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    ensureUploadDir()
+    cb(null, uploadDir)
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase()
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\s+/g,'_')
+    cb(null, `${Date.now()}_${safeName}`)
+  }
+})
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    const allowed = ['.png','.jpg','.jpeg','.gif','.svg','.webp']
+    const ext = path.extname(file.originalname).toLowerCase()
+    if (allowed.includes(ext)) cb(null, true)
+    else cb(new Error('Only image files allowed (png, jpg, gif, svg, webp)'))
+  }
+})
+
+// ── Upload sponsor logo ───────────────────────────────────────────────────────
+router.post('/sponsors/upload', upload.single('logo'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' })
+  const url = `/uploads/sponsors/${req.file.filename}`
+  res.json({ url, filename: req.file.filename })
+})
+
+// ── Players ───────────────────────────────────────────────────────────────────
 router.get('/players', async (req, res) => {
   const { rows } = await pool.query('SELECT id,name,email,ntrp,phone,is_admin,created_at FROM players ORDER BY created_at DESC')
   res.json(rows)
 })
 
+router.patch('/players/:id/admin', async (req, res) => {
+  const { is_admin } = req.body
+  const { rows } = await pool.query('UPDATE players SET is_admin=$1 WHERE id=$2 RETURNING id,name,is_admin', [is_admin, req.params.id])
+  res.json(rows[0])
+})
+
+// ── Events ────────────────────────────────────────────────────────────────────
 router.get('/events', async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM events ORDER BY created_at DESC')
   res.json(rows)
@@ -30,11 +78,18 @@ router.patch('/events/:id', async (req, res) => {
   res.json(rows[0])
 })
 
-router.get('/interest', async (req, res) => {
-  const { rows } = await pool.query('SELECT * FROM interest_submissions ORDER BY created_at DESC')
+router.get('/events/:id/registrations', async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT er.*, p.name, p.email, p.ntrp
+    FROM event_registrations er
+    JOIN players p ON p.id = er.player_id
+    WHERE er.event_id = $1
+    ORDER BY er.joined_at ASC
+  `, [req.params.id])
   res.json(rows)
 })
 
+// ── Sponsors ──────────────────────────────────────────────────────────────────
 router.get('/sponsors', async (req, res) => {
   const { rows } = await pool.query(`
     SELECT s.*, e.name as event_name
@@ -80,25 +135,22 @@ router.patch('/sponsors/:id', async (req, res) => {
 })
 
 router.delete('/sponsors/:id', async (req, res) => {
+  // Also delete the uploaded file if it's a local upload
+  try {
+    const { rows } = await pool.query('SELECT logo_url FROM sponsors WHERE id=$1', [req.params.id])
+    if (rows[0]?.logo_url?.startsWith('/uploads/sponsors/')) {
+      const filePath = path.join(__dirname, '../../client/dist', rows[0].logo_url)
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+    }
+  } catch {}
   await pool.query('DELETE FROM sponsors WHERE id=$1', [req.params.id])
   res.json({ message: 'Deleted' })
 })
 
-router.get('/events/:id/registrations', async (req, res) => {
-  const { rows } = await pool.query(`
-    SELECT er.*, p.name, p.email, p.ntrp
-    FROM event_registrations er
-    JOIN players p ON p.id = er.player_id
-    WHERE er.event_id = $1
-    ORDER BY er.joined_at ASC
-  `, [req.params.id])
+// ── Interest ──────────────────────────────────────────────────────────────────
+router.get('/interest', async (req, res) => {
+  const { rows } = await pool.query('SELECT * FROM interest_submissions ORDER BY created_at DESC')
   res.json(rows)
-})
-
-router.patch('/players/:id/admin', async (req, res) => {
-  const { is_admin } = req.body
-  const { rows } = await pool.query('UPDATE players SET is_admin=$1 WHERE id=$2 RETURNING id,name,is_admin', [is_admin, req.params.id])
-  res.json(rows[0])
 })
 
 module.exports = router
