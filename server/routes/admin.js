@@ -8,40 +8,34 @@ const fs = require('fs')
 router.use(adminAuth)
 
 // ── File upload setup ─────────────────────────────────────────────────────────
-const uploadDir = path.join(__dirname, '../../client/dist/uploads/sponsors')
-// ensure upload dir exists (created at runtime)
-const ensureUploadDir = () => {
-  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true })
-}
+const UPLOADS_DIR = path.join(__dirname, '../../uploads/sponsors')
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    ensureUploadDir()
-    cb(null, uploadDir)
+    if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true })
+    cb(null, UPLOADS_DIR)
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase()
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\s+/g,'_')
-    cb(null, `${Date.now()}_${safeName}`)
+    const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9._-]/g, '_')
+    cb(null, `${Date.now()}_${base}${ext}`)
   }
 })
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = ['.png','.jpg','.jpeg','.gif','.svg','.webp']
-    const ext = path.extname(file.originalname).toLowerCase()
-    if (allowed.includes(ext)) cb(null, true)
-    else cb(new Error('Only image files allowed (png, jpg, gif, svg, webp)'))
+    const allowed = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp']
+    if (allowed.includes(path.extname(file.originalname).toLowerCase())) cb(null, true)
+    else cb(new Error('Only image files allowed'))
   }
 })
 
-// ── Upload sponsor logo ───────────────────────────────────────────────────────
+// POST /api/admin/sponsors/upload — returns { url }
 router.post('/sponsors/upload', upload.single('logo'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' })
-  const url = `/uploads/sponsors/${req.file.filename}`
-  res.json({ url, filename: req.file.filename })
+  if (!req.file) return res.status(400).json({ error: 'No file received' })
+  res.json({ url: `/uploads/sponsors/${req.file.filename}` })
 })
 
 // ── Players ───────────────────────────────────────────────────────────────────
@@ -130,16 +124,16 @@ router.patch('/sponsors/:id', async (req, res) => {
     res.json(rows[0])
   } catch (err) {
     console.error(err)
-    res.status(500).json({ error: 'Failed to update sponsor' })
+    res.status(500).json({ error: 'Failed to update' })
   }
 })
 
 router.delete('/sponsors/:id', async (req, res) => {
-  // Also delete the uploaded file if it's a local upload
   try {
     const { rows } = await pool.query('SELECT logo_url FROM sponsors WHERE id=$1', [req.params.id])
-    if (rows[0]?.logo_url?.startsWith('/uploads/sponsors/')) {
-      const filePath = path.join(__dirname, '../../client/dist', rows[0].logo_url)
+    const logo = rows[0]?.logo_url
+    if (logo?.startsWith('/uploads/sponsors/')) {
+      const filePath = path.join(UPLOADS_DIR, path.basename(logo))
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
     }
   } catch {}
